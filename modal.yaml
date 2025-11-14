@@ -1,0 +1,43 @@
+# modal.yaml - Modal deployment for IDM-VTON API
+
+image:
+  python: "3.12"
+  gpu: A100
+  python_packages:
+    - torch==2.4.0
+    - torchvision==0.19.0
+    - diffusers==0.25.0
+    - transformers==4.39.3
+    - tokenizers==0.15.2
+    - huggingface_hub==0.19.4
+    - accelerate
+    - fastapi
+    - uvicorn
+    - pillow
+    - numpy
+
+volumes:
+  idm_vton_data:
+    local: .
+    remote: /root/IDM-VTON
+
+bindings:
+  - source: idm_vton_data
+    target: /root/IDM-VTON
+
+env:
+  MODEL_CKPT_PATH: /root/IDM-VTON/train_result/checkpoint-15000
+  PORT: 8000
+
+resources:
+  cpus: 4
+  memory: 64G
+  gpu: 1
+
+ports:
+  - 8000:8000
+
+command: >
+  bash -lc "cd /root/IDM-VTON && uvicorn app:app --host 0.0.0.0 --port 8000"
+
+name: idm-vton-api

@@ -423,3 +423,129 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# -------------------------------
+# CUSTOM LOADER FOR MODAL API
+# -------------------------------
+# This function loads the trained IDM-VTON pipeline and returns
+# a callable object that performs virtual try-on.
+# API: result = pipeline(person_img, cloth_img, steps, guidance)
+
+def build_pipeline_from_ckpt(ckpt_path, device="cuda"):
+    import torch
+    from diffusers import StableDiffusionXLImg2ImgPipeline
+    from ip_adapter.ip_adapter import IPAdapterPlusXL
+
+    # Load SDXL base pipeline
+    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        torch_dtype=torch.float16,
+    ).to(device)
+
+    # Load IP-Adapter
+    ip_ckpt = "/root/IDM-VTON/ckpt/ip_adapter/ip-adapter-plus_sdxl_vit-h.bin"
+    ip = IPAdapterPlusXL(pipe, ip_ckpt)
+
+    # Load your trained checkpoint
+    if ckpt_path.endswith("/") is False:
+        ckpt_path = ckpt_path + "/"
+
+    if not os.path.exists(ckpt_path + "pytorch_model.bin"):
+        raise FileNotFoundError("Missing pytorch_model.bin in checkpoint folder")
+
+    state = torch.load(ckpt_path + "pytorch_model.bin", map_location="cpu")
+    pipe.load_state_dict(state, str
+
+# -------------------------------
+# CUSTOM LOADER FOR MODAL API
+# -------------------------------
+def build_pipeline_from_ckpt(ckpt_path, device="cuda"):
+    import torch
+    import os
+    from diffusers import StableDiffusionXLImg2ImgPipeline
+    from ip_adapter.ip_adapter import IPAdapterPlusXL
+
+    # Load SDXL base
+    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        torch_dtype=torch.float16,
+    ).to(device)
+
+
+    # Load IP-Adapter
+    ip_ckpt = "/root/IDM-VTON/ckpt/ip_adapter/ip-adapter-plus_sdxl_vit-h.bin"
+    ip_adapter = IPAdapterPlusXL(pipe, ip_ckpt)
+
+    # Ensure checkpoint folder exists
+    if not ckpt_path.endswith("/"):
+        ckpt_path += "/"
+
+    if not os.path.exists(ckpt_path + "pytorch_model.bin"):
+        raise FileNotFoundError("Missing pytorch_model.bin in checkpoint folder")
+
+    # Load weights
+    state = torch.load(ckpt_path + "pytorch_model.bin", map_location="cpu")
+    pipe.load_state_dict(state, strict=False)
+    pipe = pipe.to(device)
+    pipe.eval()
+
+    # Main callable
+    def run_pipeline(person_img, cloth_img, num_inference_steps=20, guidance_scale=2.0):
+        with torch.no_grad():
+            out = pipe(
+                image=person_img,
+                prompt="virtual try-on, cloth replacement",
+                ip_adapter_image=cloth_img,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+            )
+        return out.images[0]
+
+    return run_pipeline
+
+
+# ==========================================
+# CUSTOM PIPELINE LOADER FOR MODAL API
+# ==========================================
+def build_pipeline_from_ckpt(ckpt_path, device="cuda"):
+    import torch, os
+    from diffusers import StableDiffusionXLImg2ImgPipeline
+    from ip_adapter.ip_adapter import IPAdapterPlusXL
+
+    # Load SDXL base pipeline
+    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        torch_dtype=torch.float16
+    ).to(device)
+
+    # Load IP-Adapter
+    ip_ckpt = "/root/IDM-VTON/ckpt/ip_adapter/ip-adapter-plus_sdxl_vit-h.bin"
+    ip = IPAdapterPlusXL(pipe, ip_ckpt)
+
+    # Ensure ckpt folder trailing slash
+    if not ckpt_path.endswith("/"):
+        ckpt_path += "/"
+
+    if not os.path.exists(ckpt_path + "pytorch_model.bin"):
+        raise FileNotFoundError("Checkpoint missing: " + ckpt_path)
+
+    # Load model weights
+    state = torch.load(ckpt_path + "pytorch_model.bin", map_location="cpu")
+    pipe.load_state_dict(state, strict=False)
+    pipe = pipe.to(device)
+    pipe.eval()
+
+    # Core function used by API
+    def run_pipeline(person_img, cloth_img, num_inference_steps=20, guidance_scale=2.0):
+        with torch.no_grad():
+            out = pipe(
+                image=person_img,
+                prompt="virtual try-on, cloth replacement",
+                ip_adapter_image=cloth_img,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale
+            )
+        return out.images[0]
+
+    return run_pipeline
+
