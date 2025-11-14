@@ -1,46 +1,63 @@
+# modal_app.py
 import os
 import sys
+import subprocess
 from io import BytesIO
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 import modal
 
+# ------------------------------
+# Your GitHub repo URL
+# ------------------------------
+GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
+
 app = modal.App("idm-vton-api")
 
-# ---------------------------
-# BUILD MODAL IMAGE
-# ---------------------------
+# ------------------------------
+# Build image with all packages
+# ------------------------------
 image = (
      modal.Image.debian_slim()
     .apt_install("git")
-    .pip_install("python-multipart")                 # REQUIRED for form uploads
-    .pip_install("fastapi")
-    .pip_install("uvicorn")
+    .pip_install("python-multipart")
     .pip_install("pillow")
-    .copy_local_dir(".", "/root/IDM-VTON")
-    .pip_install_from_requirements("/root/IDM-VTON/requirements.txt")
-    .image_id("force-rebuild-3")         
+    .run_commands(
+        "pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118"
+    )
 )
 
+# FastAPI instance
 fastapi_app = FastAPI()
 pipeline = None
 
 
+def clone_repo():
+    repo_path = "/root/IDM-VTON"
+    if not os.path.exists(repo_path):
+        subprocess.check_call(["git", "clone", GIT_URL, repo_path])
+
+    if repo_path not in sys.path:
+        sys.path.insert(0, repo_path)
+
+    return repo_path
+
+
 def load_pipeline():
     global pipeline
-    if pipeline is not None:
+    if pipeline:
         return pipeline
 
-    sys.path.insert(0, "/root/IDM-VTON")
+    repo_path = clone_repo()
 
     from inference import build_pipeline_from_ckpt
 
-    ckpt_folder = "/root/IDM-VTON/ckpt"
-    if not os.path.exists(ckpt_folder):
-        raise RuntimeError("Checkpoint folder not found")
+    ckpt_path = os.path.join(repo_path, "ckpt")
+    if not os.path.exists(ckpt_path):
+        raise RuntimeError("Missing ckpt folder inside GitHub repo.")
 
-    pipeline = build_pipeline_from_ckpt(ckpt_folder, device="cuda")
+    pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
     return pipeline
 
 
@@ -53,19 +70,19 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
         raise HTTPException(400, f"Invalid image: {e}")
 
     pipe = load_pipeline()
-    result = pipe(p_img, c_img)
+    output = pipe(p_img, c_img)
 
-    if isinstance(result, (list, tuple)):
-        result = result[0]
+    if isinstance(output, (list, tuple)):
+        output = output[0]
 
-    buf = BytesIO()
-    result.save(buf, "PNG")
-    buf.seek(0)
+    buffer = BytesIO()
+    output.save(buffer, format="PNG")
+    buffer.seek(0)
 
-    return StreamingResponse(buf, media_type="image/png")
+    return StreamingResponse(buffer, media_type="image/png")
 
 
-@app.function(image=image, gpu="A10G", timeout=1800)
+@app.function(image=image, gpu="A10G", timeout=1500)
 @modal.asgi_app()
 def api():
     return fastapi_app
