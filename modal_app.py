@@ -23,6 +23,8 @@ image = (
     .apt_install("git")
     .pip_install("python-multipart")
     .pip_install("pillow")
+    .pip_install("fastapi")
+    .pip_install("uvicorn")
     .run_commands(
         "pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118"
     )
