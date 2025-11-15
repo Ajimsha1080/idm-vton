@@ -30,22 +30,20 @@ base = (
         "opencv-python-headless",
         "timm"
     )
-    .pip_install(
-        "diffusers==0.25.0"      # <--- IMPORTANT FIX
-    )
-    .pip_install(
-        "torch",
-        "torchvision",
-        index_url="https://download.pytorch.org/whl/cu118"
-    )
+    # correct diffusers fork for IDM-VTON
+    .pip_install("git+https://github.com/yisol/diffusers.git")
+    # correct IP-Adapter repo
     .pip_install("git+https://github.com/tencent-ailab/IP-Adapter.git")
+    # correct CUDA torch
+    .pip_install("torch", "torchvision", index_url="https://download.pytorch.org/whl/cu118")
 )
 
 fastapi_app = FastAPI()
 pipeline = None
 
+
 # ---------------------------------------------------------
-# Clone IDM-VTON inside container
+# Clone IDM-VTON repo inside container
 # ---------------------------------------------------------
 def clone_repo():
     repo_path = "/root/IDM-VTON"
@@ -56,6 +54,7 @@ def clone_repo():
         sys.path.insert(0, repo_path)
 
     return repo_path
+
 
 # ---------------------------------------------------------
 # Load the try-on pipeline
@@ -73,6 +72,7 @@ def load_pipeline():
     pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
 
     return pipeline
+
 
 # ---------------------------------------------------------
 # API ENDPOINT
@@ -93,6 +93,7 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     buf.seek(0)
 
     return StreamingResponse(buf, media_type="image/png")
+
 
 # ---------------------------------------------------------
 # DEPLOY APP
