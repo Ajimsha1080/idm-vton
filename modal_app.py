@@ -17,31 +17,36 @@ app = modal.App("idm-vton-api")
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
-    .apt_install("git")
-    .env({"PIP_NO_CACHE_DIR": "1"})             # Force clean pip install
-    .run_commands("pip uninstall -y diffusers || true")  # Remove incorrect diffusers
-    .pip_install(
-        "fastapi",
-        "uvicorn",
-        "starlette",
-        "python-multipart",
-        "pillow",
-        "accelerate",
-        "transformers",
-        "einops",
-        "timm",
-        "opencv-python-headless",
-    )
-    .pip_install(
-        "torch",
-        "torchvision",
-        index_url="https://download.pytorch.org/whl/cu118"
-    )
-    # Correct diffusers for IDM-VTON
-    .pip_install("git+https://github.com/yisol/diffusers.git")
-    # Install IP-Adapter after diffusers
-    .pip_install("git+https://github.com/tencent-ailab/IP-Adapter.git")
+        .apt_install("git")
+        .env({"PIP_NO_CACHE_DIR": "1"})
+        .run_commands("pip uninstall -y diffusers || true")
+        .pip_install(
+            "fastapi",
+            "uvicorn",
+            "starlette",
+            "python-multipart",
+            "pillow",
+            "accelerate",
+            "transformers",
+            "einops",
+            "timm",
+            "opencv-python-headless",
+        )
+        .pip_install(
+            "torch",
+            "torchvision",
+            index_url="https://download.pytorch.org/whl/cu118"
+        )
+        # Install diffusers from ZIP (GitHub clone blocked)
+        .pip_install(
+            "https://github.com/yisol/diffusers/archive/refs/heads/main.zip"
+        )
+        # Install IP-Adapter from ZIP (GitHub clone blocked)
+        .pip_install(
+            "https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.zip"
+        )
 )
+
 
 fastapi_app = FastAPI()
 pipeline = None
