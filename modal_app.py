@@ -10,12 +10,11 @@ from PIL import Image
 
 GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 
-# NEW APP NAME (forces Modal to rebuild)
-app = modal.App("idm-vton-api-v5")
-
+# NEW APP NAME (forces full rebuild)
+app = modal.App("idm-vton-api-v7")
 
 # ---------------------------------------------------------
-# GPU IMAGE WITH SAFE DEPENDENCIES (NO GIT+)
+# GPU IMAGE WITH SAFE DEPENDENCIES (HUGGINGFACE MIRRORS)
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
@@ -37,15 +36,13 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # SAFE TAR.GZ ARCHIVES (no github authentication needed)
-    .pip_install("https://github.com/yisol/diffusers/archive/refs/heads/main.tar.gz")
-    .pip_install("https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.tar.gz")
+    # ----- WORKING MIRROR LINKS -----
+    .pip_install("https://huggingface.co/Yisol/diffusers/resolve/main/diffusers.zip")
+    .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ip_adapter.zip")
 )
-
 
 fastapi_app = FastAPI()
 pipeline = None
-
 
 # ---------------------------------------------------------
 # Clone IDM-VTON repository
@@ -61,9 +58,8 @@ def clone_repo():
 
     return repo_path
 
-
 # ---------------------------------------------------------
-# Load the IDM-VTON pipeline
+# Load pipeline
 # ---------------------------------------------------------
 def load_pipeline():
     global pipeline
@@ -71,13 +67,11 @@ def load_pipeline():
         return pipeline
 
     repo_path = clone_repo()
-
     from inference import build_pipeline_from_ckpt
-    ckpt_path = os.path.join(repo_path, "ckpt")
 
+    ckpt_path = os.path.join(repo_path, "ckpt")
     pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
     return pipeline
-
 
 # ---------------------------------------------------------
 # API Endpoint
@@ -88,23 +82,22 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
         person_img = Image.open(BytesIO(await person.read())).convert("RGB")
         cloth_img = Image.open(BytesIO(await cloth.read())).convert("RGB")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image: {e}")
+        raise HTTPException(400, f"Invalid image: {e}")
 
     pipe = load_pipeline()
     output = pipe(person_img, cloth_img)
 
-    buffer = BytesIO()
-    output.save(buffer, format="PNG")
-    buffer.seek(0)
+    buf = BytesIO()
+    output.save(buf, format="PNG")
+    buf.seek(0)
 
-    return StreamingResponse(buffer, media_type="image/png")
-
+    return StreamingResponse(buf, media_type="image/png")
 
 # ---------------------------------------------------------
-# DEPLOY APP — FORCE NEW IMAGE BUILD
+# DEPLOY — FORCE CLEAN IMAGE REBUILD
 # ---------------------------------------------------------
 @app.function(
-    image=base.new(),   # <<< THIS FORCES MODAL TO REBUILD IMAGE
+    image=base.new("idm-vton-image-v7"),  # <--- IMPORTANT
     gpu="A10G",
     timeout=600,
 )
