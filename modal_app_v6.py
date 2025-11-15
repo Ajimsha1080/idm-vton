@@ -10,10 +10,8 @@ from PIL import Image
 
 GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 
-# new app name
 app = modal.App("idm-vton-api-v6")
 
-# SAFE IMAGE BUILD (no huggingface, no auth)
 base = (
     modal.Image.debian_slim()
     .apt_install("git")
@@ -34,8 +32,9 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # PUBLIC NO-AUTH DOWNLOADS
-    .pip_install("https://github.com/yisol/diffusers/archive/refs/heads/main.tar.gz")
+    # CORRECT REPO (no 404)
+    .pip_install("https://github.com/yisol/diffusers_xl/archive/refs/heads/main.tar.gz")
+    # IP-Adapter (works)
     .pip_install("https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.tar.gz")
 )
 
@@ -83,7 +82,7 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
 
 
 @app.function(
-    image=base,    # NO .new() → you used this incorrectly earlier
+    image=base,
     gpu="A10G",
     timeout=600,
 )
