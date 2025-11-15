@@ -11,7 +11,7 @@ from PIL import Image
 GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 
 # NEW APP NAME (forces full rebuild)
-app = modal.App("idm-vton-api-v7")
+app = modal.App("idm-vton-api-v6")
 
 # ---------------------------------------------------------
 # GPU IMAGE WITH SAFE DEPENDENCIES (HUGGINGFACE MIRRORS)
