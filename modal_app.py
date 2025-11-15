@@ -13,15 +13,11 @@ GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 app = modal.App("idm-vton-api")
 
 # ---------------------------------------------------------
-# GPU IMAGE WITH CORRECT DEPENDENCIES (NO GIT+ INSTALLS)
+# GPU IMAGE WITH CORRECT DEPENDENCIES (NO GIT+)
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
     .apt_install("git")
-    .env({"PIP_NO_CACHE_DIR": "1"})
-    .run_commands("pip uninstall -y diffusers || true")
-
-    # basic deps
     .pip_install(
         "fastapi",
         "uvicorn",
@@ -34,32 +30,21 @@ base = (
         "timm",
         "opencv-python-headless",
     )
-
-    # pytorch
     .pip_install(
         "torch",
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-
-    # INSTALL YISOL DIFFUSERS FROM ZIP (NO GIT CLONE)
-    .pip_install(
-        "https://github.com/yisol/diffusers/archive/refs/heads/main.zip"
-    )
-
-    # INSTALL IP-ADAPTER FROM ZIP (NO GIT CLONE)
-    .pip_install(
-        "https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.zip"
-    )
+    # Install yisol diffusers (GitHub RAW ZIP)
+    .pip_install("https://codeload.github.com/yisol/diffusers/zip/refs/heads/main")
+    # Install IP-Adapter
+    .pip_install("https://codeload.github.com/tencent-ailab/IP-Adapter/zip/refs/heads/master")
 )
 
 fastapi_app = FastAPI()
 pipeline = None
 
 
-# ---------------------------------------------------------
-# Clone IDM-VTON repo inside container
-# ---------------------------------------------------------
 def clone_repo():
     repo_path = "/root/IDM-VTON"
     if not os.path.exists(repo_path):
@@ -71,9 +56,6 @@ def clone_repo():
     return repo_path
 
 
-# ---------------------------------------------------------
-# Load the try-on pipeline
-# ---------------------------------------------------------
 def load_pipeline():
     global pipeline
     if pipeline is not None:
@@ -82,16 +64,12 @@ def load_pipeline():
     repo_path = clone_repo()
 
     from inference import build_pipeline_from_ckpt
-
     ckpt_path = os.path.join(repo_path, "ckpt")
     pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
 
     return pipeline
 
 
-# ---------------------------------------------------------
-# API ENDPOINT
-# ---------------------------------------------------------
 @fastapi_app.post("/tryon")
 async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     try:
@@ -110,9 +88,6 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     return StreamingResponse(buf, media_type="image/png")
 
 
-# ---------------------------------------------------------
-# DEPLOY APP
-# ---------------------------------------------------------
 @app.function(
     image=base,
     gpu="A10G",
@@ -121,3 +96,4 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
 @modal.asgi_app()
 def api():
     return fastapi_app
+
