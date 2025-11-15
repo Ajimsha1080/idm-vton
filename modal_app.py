@@ -10,10 +10,11 @@ from PIL import Image
 
 GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 
-app = modal.App("idm-vton-api")
+# IMPORTANT: new app name to force new build
+app = modal.App("idm-vton-api-v3")
 
 # ---------------------------------------------------------
-# GPU IMAGE WITH CORRECT DEPENDENCIES (NO GIT+)
+# GPU IMAGE WITH CORRECT DEPENDENCIES (SAFE, NO GIT+)
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
@@ -29,15 +30,17 @@ base = (
         "einops",
         "timm",
         "opencv-python-headless",
+    )
+    # correct CUDA torch
+    .pip_install(
         "torch",
         "torchvision",
+        index_url="https://download.pytorch.org/whl/cu118"
     )
-    # SAFE MIRROR LINKS (NO GITHUB DOWNLOAD)
-    .pip_install("https://huggingface.co/yisol/diffusers/resolve/main/diffusers.zip")
-    .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ipadapter.zip")
+    # SAFE GitHub archive URL installs
+    .pip_install("https://github.com/yisol/diffusers/archive/refs/heads/main.tar.gz")
+    .pip_install("https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.tar.gz")
 )
-
-
 
 fastapi_app = FastAPI()
 pipeline = None
@@ -63,8 +66,8 @@ def load_pipeline():
 
     from inference import build_pipeline_from_ckpt
     ckpt_path = os.path.join(repo_path, "ckpt")
-    pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
 
+    pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
     return pipeline
 
 
@@ -94,4 +97,3 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
 @modal.asgi_app()
 def api():
     return fastapi_app
-
