@@ -18,8 +18,8 @@ app = modal.App("idm-vton-api")
 base = (
     modal.Image.debian_slim()
     .apt_install("git")
-    .env({"PIP_NO_CACHE_DIR": "1"})   # force clean install
-    .run_commands("pip uninstall -y diffusers || true")  # remove wrong version
+    .env({"PIP_NO_CACHE_DIR": "1"})             # Force clean pip install
+    .run_commands("pip uninstall -y diffusers || true")  # Remove incorrect diffusers
     .pip_install(
         "fastapi",
         "uvicorn",
@@ -37,12 +37,11 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # install CORRECT diffusers
+    # Correct diffusers for IDM-VTON
     .pip_install("git+https://github.com/yisol/diffusers.git")
-    # install IP-Adapter AFTER diffusers
+    # Install IP-Adapter after diffusers
     .pip_install("git+https://github.com/tencent-ailab/IP-Adapter.git")
 )
-
 
 fastapi_app = FastAPI()
 pipeline = None
