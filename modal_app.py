@@ -26,17 +26,17 @@ base = (
         "pillow",
         "accelerate",
         "transformers",
-        "torch",
-        "torchvision",
         "einops",
         "timm",
         "opencv-python-headless",
+        "torch",
+        "torchvision",
     )
-    # Correct diffusers from HuggingFace mirror
+    # SAFE MIRROR LINKS (NO GITHUB DOWNLOAD)
     .pip_install("https://huggingface.co/yisol/diffusers/resolve/main/diffusers.zip")
-    # Correct IP-Adapter from HuggingFace mirror
     .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ipadapter.zip")
 )
+
 
 
 fastapi_app = FastAPI()
