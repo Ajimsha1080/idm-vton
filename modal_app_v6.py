@@ -10,7 +10,7 @@ from PIL import Image
 
 GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 
-# NEW APP NAME (forces full rebuild)
+# NEW APP NAME
 app = modal.App("idm-vton-api-v6")
 
 # ---------------------------------------------------------
@@ -36,7 +36,7 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # ----- WORKING MIRROR LINKS -----
+    # MIRROR (NO git clone)
     .pip_install("https://huggingface.co/Yisol/diffusers/resolve/main/diffusers.zip")
     .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ip_adapter.zip")
 )
@@ -44,38 +44,24 @@ base = (
 fastapi_app = FastAPI()
 pipeline = None
 
-# ---------------------------------------------------------
-# Clone IDM-VTON repository
-# ---------------------------------------------------------
 def clone_repo():
     repo_path = "/root/IDM-VTON"
-
     if not os.path.exists(repo_path):
         subprocess.check_call(["git", "clone", GIT_URL, repo_path])
-
     if repo_path not in sys.path:
         sys.path.insert(0, repo_path)
-
     return repo_path
 
-# ---------------------------------------------------------
-# Load pipeline
-# ---------------------------------------------------------
 def load_pipeline():
     global pipeline
     if pipeline is not None:
         return pipeline
-
     repo_path = clone_repo()
     from inference import build_pipeline_from_ckpt
-
     ckpt_path = os.path.join(repo_path, "ckpt")
     pipeline = build_pipeline_from_ckpt(ckpt_path, device="cuda")
     return pipeline
 
-# ---------------------------------------------------------
-# API Endpoint
-# ---------------------------------------------------------
 @fastapi_app.post("/tryon")
 async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     try:
@@ -90,14 +76,13 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     buf = BytesIO()
     output.save(buf, format="PNG")
     buf.seek(0)
-
     return StreamingResponse(buf, media_type="image/png")
 
 # ---------------------------------------------------------
-# DEPLOY — FORCE CLEAN IMAGE REBUILD
+# DEPLOY — OLD MODAL VERSION (NO .new())
 # ---------------------------------------------------------
 @app.function(
-    image=base.new("idm-vton-image-v7"),  # <--- IMPORTANT
+    image=base,
     gpu="A10G",
     timeout=600,
 )
