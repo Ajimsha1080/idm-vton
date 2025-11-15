@@ -13,7 +13,7 @@ GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 app = modal.App("idm-vton-api")
 
 # ---------------------------------------------------------
-# BUILD GPU IMAGE WITH ALL REQUIRED PACKAGES
+# GPU IMAGE WITH CORRECT DEPENDENCIES
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
@@ -26,9 +26,12 @@ base = (
         "pillow",
         "accelerate",
         "transformers",
-        "diffusers",
-        "safetensors",
-        "einops",       # <-- IMPORTANT FIX
+        "einops",
+        "opencv-python-headless",
+        "timm"
+    )
+    .pip_install(
+        "diffusers==0.25.0"      # <--- IMPORTANT FIX
     )
     .pip_install(
         "torch",
@@ -38,7 +41,6 @@ base = (
     .pip_install("git+https://github.com/tencent-ailab/IP-Adapter.git")
 )
 
-# FastAPI app
 fastapi_app = FastAPI()
 pipeline = None
 
@@ -56,7 +58,7 @@ def clone_repo():
     return repo_path
 
 # ---------------------------------------------------------
-# Load the VTON pipeline (from inference.py)
+# Load the try-on pipeline
 # ---------------------------------------------------------
 def load_pipeline():
     global pipeline
@@ -64,6 +66,7 @@ def load_pipeline():
         return pipeline
 
     repo_path = clone_repo()
+
     from inference import build_pipeline_from_ckpt
 
     ckpt_path = os.path.join(repo_path, "ckpt")
@@ -92,7 +95,7 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     return StreamingResponse(buf, media_type="image/png")
 
 # ---------------------------------------------------------
-# DEPLOY
+# DEPLOY APP
 # ---------------------------------------------------------
 @app.function(
     image=base,
@@ -102,4 +105,3 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
 @modal.asgi_app()
 def api():
     return fastapi_app
-
