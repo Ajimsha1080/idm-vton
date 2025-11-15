@@ -28,6 +28,7 @@ base = (
         "transformers",
         "diffusers",
         "safetensors",
+        "einops",       # <-- IMPORTANT FIX
     )
     .pip_install(
         "torch",
