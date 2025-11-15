@@ -35,9 +35,9 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # DIFFUSERS from HuggingFace (works!)
+    # Correct Diffusers (HuggingFace ZIP mirror)
     .pip_install("https://huggingface.co/yisol/diffusers/resolve/main/diffusers.zip")
-    # IP-ADAPTER from HuggingFace (works!)
+    # Correct IP-Adapter (HuggingFace ZIP mirror)
     .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ipadapter.zip")
 )
 
