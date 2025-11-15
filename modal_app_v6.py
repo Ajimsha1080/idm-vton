@@ -32,15 +32,14 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # CORRECT REPO (no 404)
-    .pip_install("https://github.com/yisol/diffusers_xl/archive/refs/heads/main.tar.gz")
-    # IP-Adapter (works)
+    # CORRECT diffusers fork for IDM-VTON
+    .pip_install("https://github.com/IDM-VTON/diffusers/archive/refs/heads/main.tar.gz")
+    # Correct IP-Adapter repo
     .pip_install("https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.tar.gz")
 )
 
 fastapi_app = FastAPI()
 pipeline = None
-
 
 def clone_repo():
     repo_path = "/root/IDM-VTON"
@@ -65,7 +64,10 @@ def load_pipeline():
 
 
 @fastapi_app.post("/tryon")
-async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
+async def tryon(
+    person: UploadFile = File(...), 
+    cloth: UploadFile = File(...)
+):
     try:
         person_img = Image.open(BytesIO(await person.read())).convert("RGB")
         cloth_img = Image.open(BytesIO(await cloth.read())).convert("RGB")
@@ -78,14 +80,11 @@ async def tryon(person: UploadFile = File(...), cloth: UploadFile = File(...)):
     buf = BytesIO()
     output.save(buf, "PNG")
     buf.seek(0)
+
     return StreamingResponse(buf, media_type="image/png")
 
 
-@app.function(
-    image=base,
-    gpu="A10G",
-    timeout=600,
-)
+@app.function(image=base, gpu="A10G", timeout=600)
 @modal.asgi_app()
 def api():
     return fastapi_app
