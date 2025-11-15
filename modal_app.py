@@ -13,40 +13,45 @@ GIT_URL = "https://github.com/Ajimsha1080/idm-vton.git"
 app = modal.App("idm-vton-api")
 
 # ---------------------------------------------------------
-# GPU IMAGE WITH CORRECT DEPENDENCIES
+# GPU IMAGE WITH CORRECT DEPENDENCIES (NO GIT+ INSTALLS)
 # ---------------------------------------------------------
 base = (
     modal.Image.debian_slim()
-        .apt_install("git")
-        .env({"PIP_NO_CACHE_DIR": "1"})
-        .run_commands("pip uninstall -y diffusers || true")
-        .pip_install(
-            "fastapi",
-            "uvicorn",
-            "starlette",
-            "python-multipart",
-            "pillow",
-            "accelerate",
-            "transformers",
-            "einops",
-            "timm",
-            "opencv-python-headless",
-        )
-        .pip_install(
-            "torch",
-            "torchvision",
-            index_url="https://download.pytorch.org/whl/cu118"
-        )
-        # Install diffusers from ZIP (GitHub clone blocked)
-        .pip_install(
-            "https://github.com/yisol/diffusers/archive/refs/heads/main.zip"
-        )
-        # Install IP-Adapter from ZIP (GitHub clone blocked)
-        .pip_install(
-            "https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.zip"
-        )
-)
+    .apt_install("git")
+    .env({"PIP_NO_CACHE_DIR": "1"})
+    .run_commands("pip uninstall -y diffusers || true")
 
+    # basic deps
+    .pip_install(
+        "fastapi",
+        "uvicorn",
+        "starlette",
+        "python-multipart",
+        "pillow",
+        "accelerate",
+        "transformers",
+        "einops",
+        "timm",
+        "opencv-python-headless",
+    )
+
+    # pytorch
+    .pip_install(
+        "torch",
+        "torchvision",
+        index_url="https://download.pytorch.org/whl/cu118"
+    )
+
+    # INSTALL YISOL DIFFUSERS FROM ZIP (NO GIT CLONE)
+    .pip_install(
+        "https://github.com/yisol/diffusers/archive/refs/heads/main.zip"
+    )
+
+    # INSTALL IP-ADAPTER FROM ZIP (NO GIT CLONE)
+    .pip_install(
+        "https://github.com/tencent-ailab/IP-Adapter/archive/refs/heads/main.zip"
+    )
+)
 
 fastapi_app = FastAPI()
 pipeline = None
