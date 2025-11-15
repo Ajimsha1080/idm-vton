@@ -35,11 +35,12 @@ base = (
         "torchvision",
         index_url="https://download.pytorch.org/whl/cu118"
     )
-    # Install yisol diffusers (GitHub RAW ZIP)
-    .pip_install("https://codeload.github.com/yisol/diffusers/zip/refs/heads/main")
-    # Install IP-Adapter
-    .pip_install("https://codeload.github.com/tencent-ailab/IP-Adapter/zip/refs/heads/master")
+    # DIFFUSERS (yisol fork) FROM HUGGINGFACE
+    .pip_install("https://huggingface.co/yisol/diffusers/resolve/main/diffusers.zip")
+    # IP-ADAPTER FROM HUGGINGFACE
+    .pip_install("https://huggingface.co/tencent-ailab/IP-Adapter/resolve/main/ipadapter.zip")
 )
+
 
 fastapi_app = FastAPI()
 pipeline = None
